@@ -31,6 +31,7 @@ public class MenuService {
     @Autowired
     MenuRoleMapper menuRoleMapper;
     public List<Menu> getMenusByHrId() {
+        //通过配置的安全模块获取的菜单列表
         return menuMapper.getMenusByHrId(((Hr) SecurityContextHolder.getContext().getAuthentication().getPrincipal()).getId());
     }
 

@@ -70,6 +70,9 @@ public class EmployeeService {
             mailSendLog.setEmpId(emp.getId());
             mailSendLog.setTryTime(new Date(System.currentTimeMillis() + 1000 * 60 * MailConstants.MSG_TIMEOUT));
             mailSendLogService.insert(mailSendLog);
+
+            //ZQL 新员工入职，自动发送邮件，邮件通过rabbitmq发送消息，交于mailserver完成，mailserver收到消息后，发送消息后自动销毁消息
+            // 有一个定时任务自动检查redis里面msgid的状态，是否发送成功
             rabbitTemplate.convertAndSend(MailConstants.MAIL_EXCHANGE_NAME, MailConstants.MAIL_ROUTING_KEY_NAME, emp, new CorrelationData(msgId));
         }
         return result;

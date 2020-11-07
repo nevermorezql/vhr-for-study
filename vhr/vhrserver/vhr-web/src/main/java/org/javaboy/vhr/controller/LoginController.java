@@ -29,11 +29,16 @@ public class LoginController {
 
     @GetMapping("/verifyCode")
     public void verifyCode(HttpServletRequest request, HttpServletResponse resp) throws IOException {
+        //随机生产验证码
         VerificationCode code = new VerificationCode();
         BufferedImage image = code.getImage();
         String text = code.getText();
+
+        //验证码的结果放在session中，供浏览器直接使用
         HttpSession session = request.getSession(true);
         session.setAttribute("verify_code", text);
+
+        //把图片数据直接写入返回流里面
         VerificationCode.output(image,resp.getOutputStream());
     }
 }

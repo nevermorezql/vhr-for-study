@@ -46,12 +46,21 @@ public class MailReceiver {
     @Autowired
     StringRedisTemplate redisTemplate;
 
+    /**
+     * 处理回调的消息
+     *
+     * @param message
+     * @param channel
+     * @throws IOException
+     */
     @RabbitListener(queues = MailConstants.MAIL_QUEUE_NAME)
     public void handler(Message message, Channel channel) throws IOException {
         Employee employee = (Employee) message.getPayload();
         MessageHeaders headers = message.getHeaders();
         Long tag = (Long) headers.get(AmqpHeaders.DELIVERY_TAG);
         String msgId = (String) headers.get("spring_returned_message_correlation");
+
+        //消费后会在redis中保存一条日志，业务服务器会定时检查redis的缓存，确定是否发送成功，这里判断是否已经消费过
         if (redisTemplate.opsForHash().entries("mail_log").containsKey(msgId)) {
             //redis 中包含该 key，说明该消息已经被消费过
             logger.info(msgId + ":消息已经被消费");
@@ -74,6 +83,8 @@ public class MailReceiver {
             String mail = templateEngine.process("mail", context);
             helper.setText(mail, true);
             javaMailSender.send(msg);
+
+            //发送成功，更新redis
             redisTemplate.opsForHash().put("mail_log", msgId, "javaboy");
             channel.basicAck(tag, false);
             logger.info(msgId + ":邮件发送成功");
@@ -82,5 +93,8 @@ public class MailReceiver {
             e.printStackTrace();
             logger.error("邮件发送失败：" + e.getMessage());
         }
+
+        //TODO 这里有问题，应该要更新数据库的msgID对应的状态，或者在定时任务那边检查redis的状态，必须保持坚持统一，目前没有，会导致邮件无限重复发送
+        //测试一下
     }
 }
